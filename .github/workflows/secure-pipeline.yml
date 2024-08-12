@@ -1,12 +1,12 @@
-name: java-goof image build and deployment
+name: java-goof image build and deployment for GKE
 
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
   pull_request:
     branches:
-      - 'master'    
+      - 'main'    
 
 permissions:
   id-token: write # This is required for requesting the JWT
