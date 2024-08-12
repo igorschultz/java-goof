@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: java-goof
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-goof
+  namespace: java-goof
+  labels:
+    app: java-goof
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: java-goof
+  template:
+    metadata:
+      labels:
+        app: java-goof
+    spec:
+      containers:
+      - name: java-goof
+        image: us-central1-docker.pkg.dev/GOOGLE_PROJECT/igors-java-goof/java-goof:VERSION
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: java-goof-service
+  namespace: java-goof
+spec:
+  selector:
+    app: java-goof
+  type: LoadBalancer  
+  ports:
+  - port: 80
+    targetPort: 8080

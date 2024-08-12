@@ -1,0 +1,92 @@
+name: java-goof image build and deployment
+
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'    
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+jobs:
+  build-todolist-image:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: todolist-goof
+    steps:
+      - uses: actions/checkout@v4.1.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          load: true
+          context: todolist-goof
+          push: false
+          tags: java-goof:latest
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Install gke-gcloud-auth-plugin
+        run: gcloud components install kubectl
+
+      - name: Check gke-gcloud-auth-plugin
+        run: kubectl version --client
+      
+      - name: Use gcloud CLI
+        run: gcloud info
+
+      - name: Docker auth
+        run: gcloud auth configure-docker us-central-1-docker.pkg.dev --quiet
+
+      - name: Set version
+        id: version
+        run: echo "VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: build and push the docker image
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+          docker build -t $DOCKER_IMAGE .
+          docker push ${DOCKER_IMAGE}
+
+      - name: Falcon Image Vulnerability Analysis (IVAN)  
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
+          export FALCON_CLIENT_ID=${{ secrets.CLIENT_ID }}
+          export FALCON_CLIENT_SECRET=${{ secrets.CLIENT_SECRET }}
+          curl -LO https://github.com/CrowdStrike/ivan/releases/download/1.0.6/ivan_1.0.6_Linux_x86_64.tar.gz
+          tar xvzf ivan_1.0.6_Linux_x86_64.tar.gz
+          chmod +x ivan
+          docker pull ${DOCKER_IMAGE}
+          echo "Moving the binary to \"/usr/local/bin/\". It might request root access."
+          sudo mv ivan /usr/local/bin/
+          ivan -region us-1 -image ${DOCKER_IMAGE}
+    
+      - name: Deploy to GKE
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          gcloud container clusters get-credentials igors-gke-cluster --region us-central1-c
+          sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g; s/VERSION/$VERSION/g" k8s/java-goof.yaml
+          kubectl apply -f k8s/java-goof.yaml
