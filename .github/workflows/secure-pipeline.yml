@@ -87,7 +87,7 @@ jobs:
           FALCON_CLOUD: ${{ secrets.FALCON_CLOUD }}
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: |
-          REPOSITORY="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof
+          REPOSITORY="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof"
           RESPONSE=$(curl \
           --header "Content-Type: application/x-www-form-urlencoded" \
           --data "client_id=${FALCON_CLIENT_ID}&client_secret=${FALCON_CLIENT_SECRET}" \
