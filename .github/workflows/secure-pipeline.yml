@@ -74,7 +74,7 @@ jobs:
         run: |
           DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
           docker login --username ${FALCON_CLIENT_ID} --password ${FALCON_CLIENT_SECRET} container-upload.${FALCON_CLOUD}
-          docker tag $DOCKER_IMAGE container-upload.${DOCKER_IMAGE}
+          docker tag $DOCKER_IMAGE container-upload.${FALCON_CLOUD}/${DOCKER_IMAGE}
           docker push container-upload.${FALCON_CLOUD}/${DOCKER_IMAGE}
 
       - name: Print CrowdStrike Full Image Scan Report
