@@ -78,7 +78,6 @@ jobs:
           docker push container-upload.${FALCON_CLOUD}/${DOCKER_IMAGE}
 
       - name: Print CrowdStrike Full Image Scan Report
-        if: always()
         env:
           GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
           VERSION: ${{ steps.version.outputs.VERSION }}
