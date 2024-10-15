@@ -89,8 +89,8 @@ jobs:
         run: |
           REPOSITORY="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof"
           RESPONSE=$(curl --header "Content-Type: application/x-www-form-urlencoded" --data "client_id=${FALCON_CLIENT_ID}&client_secret=${FALCON_CLIENT_SECRET}" --request POST --silent ${API_BASE_URL}/oauth2/token) CS_JWT=$(echo ${RESPONSE} | jq -r '.access_token')
-          curl --header "Authorization: Bearer ${CS_JWT}" --request GET "https://container-upload.us-1.crowdstrike.com/reports?repository=us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof&tag=${VERSION}" > report.json
-          jq '.' report.json
+          curl --header "Authorization: Bearer ${CS_JWT}" --request GET "https://container-upload.us-1.crowdstrike.com/reports?repository=us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof&tag=${VERSION}"
+        #  jq '.' report.json
 
     #  - name: Push the docker image
     #    env:
