@@ -56,32 +56,55 @@ jobs:
         id: version
         run: echo "VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: build and push the docker image
+      - name: Docker build & tag image
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
+          docker build -t $DOCKER_IMAGE -t $DOCKER_IMAGE .
+
+      - name: Falcon Image Security Assessment  
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+          FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
+          FALCON_CLOUD: ${{ secrets.FALCON_CLOUD }}
+        run: |
+          REPOSITORY="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof"    
+          docker login --username ${FALCON_CLIENT_ID} --password ${FALCON_CLIENT_SECRET} container-upload.${FALCON_CLOUD}
+          docker tag $DOCKER_IMAGE container-upload.${FALCON_CLOUD}/${REPOSITORY}:${VERSION}
+          docker push container-upload.${FALCON_CLOUD}/${REPOSITORY}:${VERSION}
+
+      - name: Print CrowdStrike Full Image Scan Report
+        if: always()
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+          FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
+          FALCON_CLOUD: ${{ secrets.FALCON_CLOUD }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          REPOSITORY="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof
+          RESPONSE=$(curl \
+          --header "Content-Type: application/x-www-form-urlencoded" \
+          --data "client_id=${FALCON_CLIENT_ID}&client_secret=${FALCON_CLIENT_SECRET}" \
+          --request POST \
+          --silent ${API_BASE_URL}/oauth2/token) CS_JWT=$(echo ${RESPONSE} | jq -r '.access_token')
+          curl --header "Authorization: Bearer ${CS_JWT}" --request GET "https://container-upload.${FALCON_CLOUD}/reports?repository=${REPOSITORY}&tag=${VERSION}" > /tmp/report.json
+          jq '.' /tmp/report.json
+
+      - name: Push the docker image
         env:
           GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
           DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
           gcloud auth configure-docker us-central1-docker.pkg.dev
-          docker build -t $DOCKER_IMAGE .
           docker push ${DOCKER_IMAGE}
 
-      - name: Falcon Image Vulnerability Analysis (IVAN)  
-        env:
-          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        run: |
-          DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
-          export FALCON_CLIENT_ID=${{ secrets.CLIENT_ID }}
-          export FALCON_CLIENT_SECRET=${{ secrets.CLIENT_SECRET }}
-          curl -LO https://github.com/CrowdStrike/ivan/releases/download/1.0.6/ivan_1.0.6_Linux_x86_64.tar.gz
-          tar xvzf ivan_1.0.6_Linux_x86_64.tar.gz
-          chmod +x ivan
-          docker pull ${DOCKER_IMAGE}
-          echo "Moving the binary to \"/usr/local/bin/\". It might request root access."
-          sudo mv ivan /usr/local/bin/
-          ivan -region us-1 -image ${DOCKER_IMAGE}
-    
       - name: Deploy to GKE
         env:
           GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
