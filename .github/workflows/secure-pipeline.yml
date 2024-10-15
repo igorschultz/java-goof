@@ -88,7 +88,8 @@ jobs:
         run: |
           REPOSITORY="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof"
           RESPONSE=$(curl --header "Content-Type: application/x-www-form-urlencoded" --data "client_id=${FALCON_CLIENT_ID}&client_secret=${FALCON_CLIENT_SECRET}" --request POST --silent ${API_BASE_URL}/oauth2/token) CS_JWT=$(echo ${RESPONSE} | jq -r '.access_token')
-          echo $RESPONSE
+          echo -e "Linha 1\n Linha 2\n Linha 3" > linhas.txt
+          cat linhas.txt
           curl --header "Authorization: Bearer ${CS_JWT}" --request GET "https://container-upload.${FALCON_CLOUD}/reports?repository=${REPOSITORY}&tag=${VERSION}" > ./report.json
           jq '.' ./report.json
 
