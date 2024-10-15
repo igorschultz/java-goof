@@ -88,23 +88,24 @@ jobs:
         run: |
           REPOSITORY="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof"
           RESPONSE=$(curl --header "Content-Type: application/x-www-form-urlencoded" --data "client_id=${FALCON_CLIENT_ID}&client_secret=${FALCON_CLIENT_SECRET}" --request POST --silent ${API_BASE_URL}/oauth2/token) CS_JWT=$(echo ${RESPONSE} | jq -r '.access_token')
+          echo $REPONSE
           curl --header "Authorization: Bearer ${CS_JWT}" --request GET "https://container-upload.${FALCON_CLOUD}/reports?repository=${REPOSITORY}&tag=${VERSION}" > ./report.json
           jq '.' ./report.json
 
-      - name: Push the docker image
-        env:
-          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        run: |
-          DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
-          gcloud auth configure-docker us-central1-docker.pkg.dev
-          docker push ${DOCKER_IMAGE}
+    #  - name: Push the docker image
+    #    env:
+    #      GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+    #      VERSION: ${{ steps.version.outputs.VERSION }}
+    #    run: |
+    #      DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
+    #      gcloud auth configure-docker us-central1-docker.pkg.dev
+    #      docker push ${DOCKER_IMAGE}
 
-      - name: Deploy to GKE
-        env:
-          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        run: |
-          gcloud container clusters get-credentials igors-gke-cluster --region us-central1-c
-          sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g; s/VERSION/$VERSION/g" k8s/java-goof.yaml
-          kubectl apply -f k8s/java-goof.yaml
+    #  - name: Deploy to GKE
+    #    env:
+    #      GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+    #      VERSION: ${{ steps.version.outputs.VERSION }}
+    #    run: |
+    #      gcloud container clusters get-credentials igors-gke-cluster --region us-central1-c
+    #      sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g; s/VERSION/$VERSION/g" k8s/java-goof.yaml
+    #      kubectl apply -f k8s/java-goof.yaml
