@@ -72,7 +72,7 @@ jobs:
         container_repository: ${{ secrets.CONTAINER_REPO }}
         container_tag: ${{ env.GITHUB_SHA }}
         crowdstrike_region: us-1
-      # crowdstrike_score: 5000
+        crowdstrike_score: 50000
         retry_count: 30
       env:
         FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
