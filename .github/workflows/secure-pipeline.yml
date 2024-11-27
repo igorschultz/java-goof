@@ -16,96 +16,95 @@ jobs:
     defaults:
       run:
         working-directory: todolist-goof
+    
+    
     steps:
-      - uses: actions/checkout@v4.1.1
+    - uses: actions/checkout@v4.1.1
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-      - name: 'Setup jq'
-        uses: dcarbone/install-jq-action@v2
+    - name: 'Setup jq'
+      uses: dcarbone/install-jq-action@v2
 
-      - name: Build
-        uses: docker/build-push-action@v2
-        with:
-          load: true
-          context: todolist-goof
-          push: false
-          tags: java-goof:latest
+    - name: Build
+      uses: docker/build-push-action@v2
+      with:
+        load: true
+        context: todolist-goof
+        push: false
+        tags: java-goof:latest
 
-      - id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
+    - id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
       
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
       
-      - name: Install gke-gcloud-auth-plugin
-        run: gcloud components install kubectl
+    - name: Install gke-gcloud-auth-plugin
+      run: gcloud components install kubectl
 
-      - name: Check gke-gcloud-auth-plugin
-        run: kubectl version --client
+    - name: Check gke-gcloud-auth-plugin
+      run: kubectl version --client
       
-      - name: Use gcloud CLI
-        run: gcloud info
+    - name: Use gcloud CLI
+      run: gcloud info
 
-      - name: Docker auth
-        run: gcloud auth configure-docker us-central-1-docker.pkg.dev --quiet
+    - name: Docker auth
+      run: gcloud auth configure-docker us-central-1-docker.pkg.dev --quiet
 
-      - name: Set version
-        id: version
-        run: echo "VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    - name: Set version
+      id: version
+      run: echo "VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Docker build & tag image
-        env:
-          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        run: |
-          DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
-          docker build -t $DOCKER_IMAGE -t $DOCKER_IMAGE .
+    - name: Docker build & tag image
+      env:
+        GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+        VERSION: ${{ steps.version.outputs.VERSION }}
+      run: |
+        docker build -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA .
 
-      - name: Falcon Image Security Assessment  
-        env:
-          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
-          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-          FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-          FALCON_CLOUD: ${{ secrets.FALCON_CLOUD }}
-        run: |
-          DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
-          docker login --username ${FALCON_CLIENT_ID} --password ${FALCON_CLIENT_SECRET} container-upload.${FALCON_CLOUD}
-          docker tag $DOCKER_IMAGE container-upload.${FALCON_CLOUD}/${DOCKER_IMAGE}
-          docker push container-upload.${FALCON_CLOUD}/${DOCKER_IMAGE}
+    - name: Scan Container Image with CrowdStrike
+      uses: CrowdStrike/container-image-scan-action@main
+      with:
+        container_repository: ${{ secrets.CONTAINER_REPO }}
+        container_tag: ${{ env.GITHUB_SHA }}
+        crowdstrike_region: us-1
+      # crowdstrike_score: 5000
+        retry_count: 30
+      env:
+        FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+        FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
+        JSON_REPORT: /tmp/report.json  
 
-      - name: Print CrowdStrike Full Image Scan Report
-        env:
-          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
-          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-          FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-          FALCON_CLOUD: ${{ secrets.FALCON_CLOUD }}
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
-        run: |
-          REPOSITORY="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof"
-          RESPONSE=$(curl --header "Content-Type: application/x-www-form-urlencoded" --data "client_id=${FALCON_CLIENT_ID}&client_secret=${FALCON_CLIENT_SECRET}" --request POST --silent ${API_BASE_URL}/oauth2/token) CS_JWT=$(echo ${RESPONSE} | jq -r '.access_token')
-          curl --header "Authorization: Bearer ${CS_JWT}" --request GET "https://container-upload.us-1.crowdstrike.com/reports?repository=${REPOSITORY}&tag=${VERSION}"
-          jq '.' report.json
+    - name: Print CrowdStrike Full Image Scan Report
+      env:
+        GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+        VERSION: ${{ steps.version.outputs.VERSION }}
+        FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+        FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
+        FALCON_CLOUD: ${{ secrets.FALCON_CLOUD }}
+        API_BASE_URL: ${{ secrets.API_BASE_URL }}
+      run: |
+        REPOSITORY="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof"
+        RESPONSE=$(curl --header "Content-Type: application/x-www-form-urlencoded" --data "client_id=${FALCON_CLIENT_ID}&client_secret=${FALCON_CLIENT_SECRET}" --request POST --silent ${API_BASE_URL}/oauth2/token) CS_JWT=$(echo ${RESPONSE} | jq -r '.access_token')
+        curl --header "Authorization: Bearer ${CS_JWT}" --request GET "https://container-upload.us-1.crowdstrike.com/reports?repository=${REPOSITORY}&tag=${VERSION}"
+        jq '.' report.json
 
-      - name: Push the docker image
-        env:
-          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        run: |
-          DOCKER_IMAGE="us-central1-docker.pkg.dev/${GOOGLE_PROJECT}/igors-java-goof/java-goof:${VERSION}"
-          gcloud auth configure-docker us-central1-docker.pkg.dev
-          docker push ${DOCKER_IMAGE}
+    - name: Tag & Push docker image
+      run: |
+        VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA"
+        docker tag ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA $VULAPP_IMAGE_URI
+        gcloud auth configure-docker us-central1-docker.pkg.dev
+        docker push $VULAPP_IMAGE_URI
 
-      - name: Deploy to GKE
-        env:
-          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        run: |
-          gcloud container clusters get-credentials igors-gke-cluster --region us-central1-c
-          sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g; s/VERSION/$VERSION/g" k8s/java-goof.yaml
-          kubectl apply -f k8s/java-goof.yaml
+    - name: Deploy to GKE
+      env:
+        GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+        VERSION: ${{ steps.version.outputs.VERSION }}
+      run: |
+        gcloud container clusters get-credentials igors-gke-cluster --region us-central1-c
+        sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g; s/VERSION/$VERSION/g" k8s/java-goof.yaml
+        kubectl apply -f k8s/java-goof.yaml
