@@ -16,8 +16,10 @@ jobs:
     defaults:
       run:
         working-directory: todolist-goof
-    
-    
+
+    env:
+      GITHUB_SHA: ${{ github.sha }}
+        
     steps:
     - uses: actions/checkout@v4.1.1
 
@@ -33,7 +35,6 @@ jobs:
         load: true
         context: todolist-goof
         push: false
-        tags: java-goof:latest
 
     - id: auth
       uses: google-github-actions/auth@v2
