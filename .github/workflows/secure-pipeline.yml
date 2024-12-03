@@ -70,11 +70,12 @@ jobs:
 
     - name: Download latest version of Falcon Container Security Image
       env:
-        FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-        FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
         FALCON_REPO: ${{ secrets.FALCON_REPO }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
       run: |
+        export FALCON_CLIENT_ID=${{ secrets.FALCON_CLIENT_ID }}
+        export FALCON_CLIENT_SECRET=${{ secrets.FALCON_CLIENT_SECRET }}
+        FALCON_CID=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container --get-cid)
         LATESTSENSOR=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container | tail -1) && echo $LATESTSENSOR
         FALCON_IMAGE_TAG=$( echo $LATESTSENSOR | cut -d':' -f 2 )
         aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$FALCON_REPO"
