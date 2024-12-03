@@ -77,7 +77,7 @@ jobs:
         export FALCON_CLIENT_SECRET=${{ secrets.FALCON_CLIENT_SECRET }}
         FALCON_CID=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container --get-cid)
         LATESTSENSOR=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container | tail -1) && echo $LATESTSENSOR
-        FALCON_IMAGE_TAG=$( echo $LATESTSENSOR | cut -d':' -f 2 )
+        export FALCON_IMAGE_TAG=$( echo $LATESTSENSOR | cut -d':' -f 2 )
         aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$FALCON_REPO"
         docker tag $LATESTSENSOR $FALCON_REPO:$FALCON_IMAGE_TAG
         docker push $FALCON_REPO:$FALCON_IMAGE_TAG
@@ -86,12 +86,11 @@ jobs:
       env:
         FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
         FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-        FALCON_URI: $FALCON_REPO:$FALCON_IMAGE_TAG
         APP_IMAGE_URI: ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA
       run: |
         IMAGE_PULL_TOKEN=$(echo "{\"auths\":{\"$FALCON_REPO""\":{\"auth\":\"$(echo AWS:$(aws ecr get-login-password --region $AWS_REGION)|base64 -w 0 )\"}}}" | base64 -w 0)
         FALCON_CID=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container --get-cid)
-        docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm $FALCON_URI falconutil patch-image ecsfargate --source-image-uri $APP_IMAGE_URI --target-image-uri ${{ secrets.CONTAINER_REPO }}:patched --falcon-image-uri $FALCON_URI --cid $FALCON_CID -–image-pull-policy IfNotPresent
+        docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm ${{ secrets.FALCON_REPO }}:$FALCON_IMAGE_TAG falconutil patch-image ecsfargate --source-image-uri $APP_IMAGE_URI --target-image-uri ${{ secrets.CONTAINER_REPO }}:patched --falcon-image-uri $FALCON_URI --cid $FALCON_CID -–image-pull-policy IfNotPresent
     
     - name: Tag & Push docker image
       run: |
