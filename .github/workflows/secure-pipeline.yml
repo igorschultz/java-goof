@@ -68,17 +68,6 @@ jobs:
         FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
         JSON_REPORT: /tmp/report.json  
 
-    - name: Print CrowdStrike Full Image Scan Report
-      env:
-        FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-        FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-        FALCON_CLOUD: ${{ secrets.FALCON_CLOUD }}
-        API_BASE_URL: ${{ secrets.API_BASE_URL }}
-      run: |
-        RESPONSE=$(curl --header "Content-Type: application/x-www-form-urlencoded" --data "client_id=${{ secrets.FALCON_CLIENT_ID }}&client_secret=${{ secrets.FALCON_CLIENT_SECRET }}" --request POST --silent ${{ secrets.API_BASE_URL }}/oauth2/token) CS_JWT=$(echo ${RESPONSE} | jq -r '.access_token')
-        curl --header "Authorization: Bearer ${CS_JWT}" --request GET "https://container-upload.us-1.crowdstrike.com/reports?repository=${{ secrets.CONTAINER_REPO }}&tag=$GITHUB_SHA"
-        jq '.' report.json
-
     - name: Tag & Push docker image
       run: |
         VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA"
