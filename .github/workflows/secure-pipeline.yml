@@ -90,7 +90,7 @@ jobs:
       run: |
         IMAGE_PULL_TOKEN=$(echo "{\"auths\":{\"$FALCON_REPO""\":{\"auth\":\"$(echo AWS:$(aws ecr get-login-password --region $AWS_REGION)|base64 -w 0 )\"}}}" | base64 -w 0)
         FALCON_CID=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container --get-cid)
-        docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm ${{ secrets.FALCON_REPO }}:$FALCON_IMAGE_TAG falconutil patch-image ecsfargate --source-image-uri $APP_IMAGE_URI --target-image-uri ${{ secrets.CONTAINER_REPO }}:patched --falcon-image-uri $FALCON_URI --cid $FALCON_CID -–image-pull-policy IfNotPresent
+        docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm ${{ secrets.FALCON_REPO }}:$FALCON_IMAGE_TAG falconutil patch-image ecsfargate --source-image-uri ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA --target-image-uri ${{ secrets.CONTAINER_REPO }}:patched --falcon-image-uri $FALCON_URI --cid $FALCON_CID -–image-pull-policy IfNotPresent
     
     - name: Tag & Push docker image
       run: |
