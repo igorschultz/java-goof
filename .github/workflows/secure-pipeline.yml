@@ -47,19 +47,19 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}    
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
       - name: Docker build & tag image
         run: |
-          docker build -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA .
+          docker build -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} .
 
   security-steps:
     needs: build-todolist-image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
       
       - name: Scan Container Image with CrowdStrike
         uses: CrowdStrike/container-image-scan-action@main
@@ -85,7 +85,7 @@ jobs:
       
       - name: Tag & Push docker image
         run: |
-          VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA"
-          docker tag ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA $VULAPP_IMAGE_URI
+          VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}"
+          docker tag ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} $VULAPP_IMAGE_URI
           docker push $VULAPP_IMAGE_URI
 
