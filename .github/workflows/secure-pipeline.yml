@@ -21,80 +21,71 @@ jobs:
       GITHUB_SHA: ${{ github.sha }}
         
     steps:
-    - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v4.1.1
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-    - name: 'Setup jq'
-      uses: dcarbone/install-jq-action@v2
+      - name: 'Setup jq'
+        uses: dcarbone/install-jq-action@v2
 
-    - name: Build
-      uses: docker/build-push-action@v2
-      with:
-        load: true
-        context: todolist-goof
-        push: false
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          load: true
+          context: todolist-goof
+          push: false
 
-    - name: Install kubectl
-      uses: azure/setup-kubectl@v4
-      id: install
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        id: install
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}    
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}    
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Docker build & tag image
-      run: |
-        docker build -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA .
+      - name: Docker build & tag image
+        run: |
+          docker build -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA .
 
-    - name: Scan Container Image with CrowdStrike
-      uses: CrowdStrike/container-image-scan-action@main
-      with:
-        container_repository: ${{ secrets.CONTAINER_REPO }}
-        container_tag: ${{ env.GITHUB_SHA }}
-        crowdstrike_region: us-1
-        crowdstrike_score: 500000
-        retry_count: 30
-      env:
-        FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-        FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-        JSON_REPORT: /tmp/report.json
+  security-steps:
+    needs: build-todolist-image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Scan Container Image with CrowdStrike
+        uses: CrowdStrike/container-image-scan-action@main
+        with:
+          container_repository: ${{ secrets.CONTAINER_REPO }}
+          container_tag: ${{ env.GITHUB_SHA }}
+          crowdstrike_region: us-1
+          crowdstrike_score: 500000
+          retry_count: 30
+        env:
+          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+          FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
+          JSON_REPORT: /tmp/report.json
 
-    - name: Download latest version of Falcon Container Security Image
-      env:
-        FALCON_REPO: ${{ secrets.FALCON_REPO }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-      run: |
-        export FALCON_CLIENT_ID=${{ secrets.FALCON_CLIENT_ID }}
-        export FALCON_CLIENT_SECRET=${{ secrets.FALCON_CLIENT_SECRET }}
-        FALCON_CID=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container --get-cid)
-        LATESTSENSOR=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container | tail -1) && echo $LATESTSENSOR
-        export FALCON_IMAGE_TAG=$( echo $LATESTSENSOR | cut -d':' -f 2 )
-        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$FALCON_REPO"
-        docker tag $LATESTSENSOR $FALCON_REPO:$FALCON_IMAGE_TAG
-        docker push $FALCON_REPO:$FALCON_IMAGE_TAG
-
-    - name: Patch Application Image with Falcon Utility
-      env:
-        FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-        FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-        APP_IMAGE_URI: ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA
-      run: |
-        IMAGE_PULL_TOKEN=$(echo "{\"auths\":{\"$FALCON_REPO""\":{\"auth\":\"$(echo AWS:$(aws ecr get-login-password --region $AWS_REGION)|base64 -w 0 )\"}}}" | base64 -w 0)
-        FALCON_CID=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container --get-cid)
-        docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm ${{ secrets.FALCON_REPO }}:$FALCON_IMAGE_TAG falconutil patch-image ecsfargate --source-image-uri ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA --target-image-uri ${{ secrets.CONTAINER_REPO }}:patched --falcon-image-uri $FALCON_URI --cid $FALCON_CID -–image-pull-policy IfNotPresent
-    
-    - name: Tag & Push docker image
-      run: |
-        VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA"
-        docker tag ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA $VULAPP_IMAGE_URI
-        docker push $VULAPP_IMAGE_URI
+      - name: Patch Application Image with Falcon Utility
+        env:
+          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+          FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
+          CONTAINER_SENSOR_IMAGE: ${{ secrets.CONTAINER_SENSOR_IMAGE }}
+          FALCON_CID: ${{ secrets.FALCON_CID }}
+        run: |
+          docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm ${{ secrets.CONTAINER_SENSOR_IMAGE }} falconutil patch-image ecsfargate --source-image-uri ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} --target-image-uri ${{ secrets.CONTAINER_REPO }}:patched --falcon-image-uri ${{ secrets.CONTAINER_SENSOR_IMAGE }} --cid ${{ secrets.FALCON_CID }} --falconctl-opts "--tags=fargate"
+      
+      - name: Tag & Push docker image
+        run: |
+          VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA"
+          docker tag ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA $VULAPP_IMAGE_URI
+          docker push $VULAPP_IMAGE_URI
 
