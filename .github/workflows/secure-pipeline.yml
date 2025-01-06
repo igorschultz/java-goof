@@ -79,7 +79,5 @@ jobs:
       
       - name: Tag & Push docker image
         run: |
-          VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}"
-          docker tag ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} $VULAPP_IMAGE_URI
-          docker push $VULAPP_IMAGE_URI
+          docker push ${{ secrets.CONTAINER_REPO }}:patched
 
