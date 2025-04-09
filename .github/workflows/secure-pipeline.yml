@@ -75,7 +75,7 @@ jobs:
           falcon_region: 'us-1'
           source_image_uri: ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}
           target_image_uri: ${{ secrets.CONTAINER_REPO }}:patched
-          falcon_image_uri: ${{ secrets.CONTAINER_SENSOR_IMAGE }}
+          #falcon_image_uri: ${{ secrets.CONTAINER_SENSOR_IMAGE }}
           cid: ${{ secrets.FALCON_CID }}
           falconctl_opts: --tags=fargate
         env:
