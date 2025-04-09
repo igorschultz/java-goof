@@ -30,7 +30,7 @@ jobs:
         uses: dcarbone/install-jq-action@v2
 
       - name: Build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           load: true
           context: todolist-goof
@@ -68,14 +68,28 @@ jobs:
           FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
           JSON_REPORT: /tmp/report.json
 
-      - name: Patch Application Image with Falcon Utility
+      - name: Patch Container Image with Falcon Sensor
+        uses: crowdstrike/falconutil-action@v1.0.0
+        with:
+          falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
+          falcon_region: 'us-1'
+          source_image_uri: ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}
+          target_image_uri: ${{ secrets.CONTAINER_REPO }}:patched
+          falcon_image_uri: ${{ secrets.CONTAINER_SENSOR_IMAGE }}
+          cid: ${{ secrets.FALCON_CID }}
+          falconctl_opts: --tags=fargate
         env:
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-          FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-          CONTAINER_SENSOR_IMAGE: ${{ secrets.CONTAINER_SENSOR_IMAGE }}
-          FALCON_CID: ${{ secrets.FALCON_CID }}
-        run: |
-          docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm ${{ secrets.CONTAINER_SENSOR_IMAGE }} falconutil patch-image ecsfargate --source-image-uri ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} --target-image-uri ${{ secrets.CONTAINER_REPO }}:patched --falcon-image-uri ${{ secrets.CONTAINER_SENSOR_IMAGE }} --cid ${{ secrets.FALCON_CID }} --image-pull-policy IfNotPresent --falconctl-opts "--tags=fargate"
+      
+      
+     # - name: Patch Application Image with Falcon Utility
+     #   env:
+     #     FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+     #     FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
+     #     CONTAINER_SENSOR_IMAGE: ${{ secrets.CONTAINER_SENSOR_IMAGE }}
+     #     FALCON_CID: ${{ secrets.FALCON_CID }}
+     #   run: |
+     #     docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm ${{ secrets.CONTAINER_SENSOR_IMAGE }} falconutil patch-image ecsfargate --source-image-uri ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} --target-image-uri ${{ secrets.CONTAINER_REPO }}:patched --falcon-image-uri ${{ secrets.CONTAINER_SENSOR_IMAGE }} --cid ${{ secrets.FALCON_CID }} --image-pull-policy IfNotPresent --falconctl-opts "--tags=fargate"
       
       - name: Tag & Push docker image
         run: |
