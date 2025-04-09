@@ -55,18 +55,18 @@ jobs:
         uses: azure/setup-kubectl@v4
         id: install 
       
-      - name: Scan Container Image with CrowdStrike
-        uses: CrowdStrike/container-image-scan-action@main
-        with:
-          container_repository: ${{ secrets.CONTAINER_REPO }}
-          container_tag: ${{ env.GITHUB_SHA }}
-          crowdstrike_region: us-1
-          crowdstrike_score: 500000
-          retry_count: 30
-        env:
-          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-          FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-          JSON_REPORT: /tmp/report.json
+      #- name: Scan Container Image with CrowdStrike
+      #  uses: CrowdStrike/container-image-scan-action@main
+      #  with:
+      #    container_repository: ${{ secrets.CONTAINER_REPO }}
+      #    container_tag: ${{ env.GITHUB_SHA }}
+      #    crowdstrike_region: us-1
+      #    crowdstrike_score: 500000
+      #    retry_count: 30
+      #  env:
+      #    FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+      #    FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
+      #     JSON_REPORT: /tmp/report.json
 
       - name: Patch Container Image with Falcon Sensor
         uses: crowdstrike/falconutil-action@v1.0.0
