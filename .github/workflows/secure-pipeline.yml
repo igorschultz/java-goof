@@ -77,12 +77,12 @@ jobs:
           docker run --platform linux/amd64 --user 0:0 \
             -v ${HOME}/.docker/config.json:/root/.docker/config.json \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            --rm 517716713836.dkr.ecr.us-west-2.amazonaws.com/igors/falcon-container:7.23.0-6204.container.x86_64.Release.US-1 \
+            --rm ${{ secrets.CONTAINER_SENSOR_IMAGE }} \
             falconutil patch-image \
-            --source-image-uri 517716713836.dkr.ecr.us-west-2.amazonaws.com/igors/vulapp:latest \
-            --target-image-uri 517716713836.dkr.ecr.us-west-2.amazonaws.com/igors/vulapp:patch \
-            --falcon-image-uri 517716713836.dkr.ecr.us-west-2.amazonaws.com/igors/falcon-container:7.23.0-6204.container.x86_64.Release.US-1 \
-            --cid 5DDB0407BEF249C19C7A975F17979A1F-90 \
+            --source-image-uri '${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}' \
+            --target-image-uri '${{ secrets.CONTAINER_REPO }}:patched' \
+            --falcon-image-uri ${{ secrets.CONTAINER_SENSOR_IMAGE }} \
+            --cid ${{ secrets.FALCON_CID }} \
             --falconctl-opts “--tags=fargate” \
             --image-pull-policy IfNotPresent \
             --cloud-service ECS_FARGATE
