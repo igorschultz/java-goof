@@ -73,13 +73,13 @@ jobs:
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
-          source_image_uri: ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}
-          target_image_uri: ${{ secrets.CONTAINER_REPO }}:patched
-          falcon_image_uri: ${{ secrets.CONTAINER_SENSOR_IMAGE }}
-          cid: ${{ secrets.FALCON_CID }}
-          falconctl_opts: --tags=fargate
+          source_image_uri: '${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}'
+          target_image_uri: '${{ secrets.CONTAINER_REPO }}:patched'
+          falcon_image_uri: '${{ secrets.CONTAINER_SENSOR_IMAGE }}'
+          cid: '${{ secrets.FALCON_CID }}'
+          falconctl_opts: '--tags=fargate'
         env:
-          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+          FALCON_CLIENT_SECRET: '${{ secrets.FALCON_CLIENT_SECRET }}'
       
       
      # - name: Patch Application Image with Falcon Utility
