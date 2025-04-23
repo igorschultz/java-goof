@@ -38,7 +38,7 @@ jobs:
 
       - name: Docker build & tag image
         run: |
-          docker build -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} .
+          docker build -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} ${{ secrets.CONTAINER_REPO }}:latest .
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
