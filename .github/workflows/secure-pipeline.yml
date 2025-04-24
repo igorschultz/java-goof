@@ -81,21 +81,11 @@ jobs:
         env:
           FALCON_CLIENT_SECRET: '${{ secrets.FALCON_CLIENT_SECRET }}'
 
-      - name: Download task definition JSON file
-        id: download-task-def
-        run: |
-          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ secrets.TASK_DEFINITION_ARN }} --region ${{ secrets.AWS_REGION }} --query 'taskDefinition')
-          echo "$TASK_DEF" >> $GITHUB_ENV
-
-      - name: Create task definition file
-        run: |
-          echo "$TASK_DEF" > task-definition.json
-
       - name: Render Amazon ECS task definition
         id: render-java-goof-container
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: task-definition.json
+          task-definition-arn: ${{ secrets.TASK_DEFINITION_ARN }}
           container-name: java-goof
           image: ${{ secrets.CONTAINER_REPO }}:patched
 
