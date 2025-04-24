@@ -85,7 +85,7 @@ jobs:
         id: download-task-def
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ secrets.TASK_DEFINITION_ARN }} --region ${{ secrets.AWS_REGION }} --query 'taskDefinition')
-          echo "TASK_DEF" >> $GITHUB_OUTPUT
+          echo "$TASK_DEF" >> $GITHUB_OUTPUT
 
       - name: Create task definition file
         run: |
