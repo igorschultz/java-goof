@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ECS Fargate Service with VPC and Security Group for existing ECS Cluster'
+
+Parameters:
+  TaskDefinitionArn:
+    Type: String
+    Description: ARN of the existing task definition
+  MyIpAddress:
+    Type: String
+    Description: Your IP address in CIDR notation (e.g., 1.2.3.4/32)
+  ExistingECSCluster:
+    Type: String
+    Description: Name or ARN of the existing ECS Cluster
+
+Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: CS-SE-Demo-VPC-igor.schultz
+        - Key: cstag-accounting
+          Value: dev
+        - Key: cstag-business
+          Value: Sales
+        - Key: cstag-department
+          Value: Sales - 310000
+        - Key: cstag-owner
+          Value: igor.schultz
+        - Key: cstag-purpose
+          Value: lab
+        - Key: cstag-user
+          Value: igor.schultz
+
+  # Public Subnet
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: cstag-accounting
+          Value: dev
+        - Key: cstag-business
+          Value: Sales
+        - Key: cstag-department
+          Value: Sales - 310000
+        - Key: cstag-owner
+          Value: igor.schultz
+        - Key: cstag-purpose
+          Value: lab
+        - Key: cstag-user
+          Value: igor.schultz
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: cstag-accounting
+          Value: dev
+        - Key: cstag-business
+          Value: Sales
+        - Key: cstag-department
+          Value: Sales - 310000
+        - Key: cstag-owner
+          Value: igor.schultz
+        - Key: cstag-purpose
+          Value: lab
+        - Key: cstag-user
+          Value: igor.schultz
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Route Table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: cstag-accounting
+          Value: dev
+        - Key: cstag-business
+          Value: Sales
+        - Key: cstag-department
+          Value: Sales - 310000
+        - Key: cstag-owner
+          Value: igor.schultz
+        - Key: cstag-purpose
+          Value: lab
+        - Key: cstag-user
+          Value: igor.schultz
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Group
+  ServiceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Fargate service
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: !Ref MyIpAddress
+      Tags:
+        - Key: Name
+          Value: CS-SE-Demo-SG-HTTPAccess-igor.schultz
+        - Key: cstag-accounting
+          Value: dev
+        - Key: cstag-business
+          Value: Sales
+        - Key: cstag-department
+          Value: Sales - 310000
+        - Key: cstag-owner
+          Value: igor.schultz
+        - Key: cstag-purpose
+          Value: lab
+        - Key: cstag-user
+          Value: igor.schultz
+
+  # ECS Service
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ExistingECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      TaskDefinition: !Ref TaskDefinitionArn
+      ServiceName: java-goof
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Ref PublicSubnet
+          SecurityGroups:
+            - !Ref ServiceSecurityGroup
+      Tags:
+        - Key: cstag-accounting
+          Value: dev
+        - Key: cstag-business
+          Value: Sales
+        - Key: cstag-department
+          Value: Sales - 310000
+        - Key: cstag-owner
+          Value: igor.schultz
+        - Key: cstag-purpose
+          Value: lab
+        - Key: cstag-user
+          Value: igor.schultz
+
+Outputs:
+  VpcId:
+    Description: VPC ID
+    Value: !Ref VPC
+  PublicSubnetId:
+    Description: Public Subnet ID
+    Value: !Ref PublicSubnet
+  SecurityGroupId:
+    Description: Security Group ID
+    Value: !Ref ServiceSecurityGroup
