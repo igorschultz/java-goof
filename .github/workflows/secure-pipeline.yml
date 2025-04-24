@@ -85,11 +85,11 @@ jobs:
         id: download-task-def
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ secrets.TASK_DEFINITION_ARN }} --region ${{ secrets.AWS_REGION }} --query 'taskDefinition')
-          echo "TASK_DEFINITION=$TASK_DEF" >> $GITHUB_ENV
+          echo "$TASK_DEF" >> $GITHUB_ENV
 
       - name: Create task definition file
         run: |
-          echo "$TASK_DEFINITION" > task-definition.json
+          echo "$TASK_DEF" > task-definition.json
 
       - name: Render Amazon ECS task definition
         id: render-java-goof-container
