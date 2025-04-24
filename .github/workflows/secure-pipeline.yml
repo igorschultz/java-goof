@@ -80,11 +80,25 @@ jobs:
           image_pull_policy: IfNotPresent
         env:
           FALCON_CLIENT_SECRET: '${{ secrets.FALCON_CLIENT_SECRET }}'
+
+      - name: Render Amazon ECS task definition
+        id: render-java-goof-container
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition-arn:  ${{ secrets.TASK_DEFINITION_ARN }}
+          container-name: java-goof
+          image: ${{ secrets.CONTAINER_REPO }}:patched
       
+      - name: Deploy to AWS CloudFormation
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: igors-ecs-fargate-service
+          template: ecs-fargate-java-goof.yaml
+          parameter-overrides: "TaskDefinitionArn=${{ steps.render-java-goof-container.outputs.task-definition }},MyIpAddress=${{ secrets.MY_IP}},ExistingECSCluster=${{ secrets.ECS_CLUSTER}}"
+    
       - name: Tag & Push docker image
         run: |
           docker push ${{ secrets.CONTAINER_REPO }}:patched
-
 
 
 
