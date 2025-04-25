@@ -16,10 +16,7 @@ permissions:
 jobs:
   build-todolist-image:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: todolist-goof
-
+    
     env:
       GITHUB_SHA: ${{ github.sha }}
         
@@ -40,8 +37,8 @@ jobs:
           push: false
 
       - name: Docker build & tag image
-        run: |
-          docker build --platform=linux/amd64 -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} .
+        run: docker build --platform=linux/amd64 -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} .
+        working-directory: todolist-goof
           
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
