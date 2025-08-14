@@ -99,7 +99,7 @@ jobs:
           category: crowdstrike-fcs-iac-scanner
 
       - name: Patch Container Image with Falcon Sensor
-        uses: crowdstrike/falconutil-action@v1.0.0
+        uses: crowdstrike/falconutil-action@v1.1.0
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
