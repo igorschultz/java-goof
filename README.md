@@ -1,6 +1,6 @@
 ## Java Goof
 
-This is a collection of Java Todolist demo app that are vulnerable in different ways.
+This is a collection of Java Todolist demo application that are vulnerable in different ways.
 
 * [Todolist Goof](todolist-goof/README.md)
 
