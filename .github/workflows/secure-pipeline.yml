@@ -92,12 +92,12 @@ jobs:
           fail_on: 'high=10'
           upload_results: true
           report_formats: 'sarif'
-          output_path: 'scan-results/'
+          output_path: './scan-results'
         env: 
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
   
-      - name: Show scan results
-        run: cat scan-results/*.sarif
+      - name: Show IaC scan results
+        run: cat ./scan-results/*.sarif
   
       - name: Upload SARIF report to GitHub Code scanning
         uses: github/codeql-action/upload-sarif@v3
