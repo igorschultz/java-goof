@@ -91,20 +91,20 @@ jobs:
           project_owners: ${{ secrets.USER_EMAIL }}
           fail_on: 'high=10'
           upload_results: true
-          report_formats: 'sarif'
+          report_formats: 'json'
           output_path: './scan-results'
         env: 
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
   
       - name: Show IaC scan results
-        run: cat ./scan-results/*.sarif
+        run: cat ./scan-results/*.json
   
-      - name: Upload SARIF report to GitHub Code scanning
-        uses: github/codeql-action/upload-sarif@v3
-        if: steps.fcs.outputs.exit-code != 0
-        with:
-          sarif_file: ./scan-results
-          category: crowdstrike-fcs-iac-scanner
+      #- name: Upload SARIF report to GitHub Code scanning
+      #  uses: github/codeql-action/upload-sarif@v3
+      #  if: steps.fcs.outputs.exit-code != 0
+      #  with:
+      #    sarif_file: ./scan-results
+      #    category: crowdstrike-fcs-iac-scanner
 
       - name: Patch Container Image with Falcon Sensor
         uses: crowdstrike/falconutil-action@v1.1.0
