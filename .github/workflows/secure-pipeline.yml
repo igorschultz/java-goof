@@ -55,36 +55,44 @@ jobs:
         uses: azure/setup-kubectl@v4
         id: install 
       
+      - name: Create scan results directory
+        run: mkdir vuln-results
+      
       - name: Scan Container Image with CrowdStrike
-        uses: CrowdStrike/container-image-scan-action@main
+        uses: crowdstrike/fcs-action@v2.0.0
         with:
-          container_repository: ${{ secrets.CONTAINER_REPO }}
-          container_tag: ${{ env.GITHUB_SHA }}
-          crowdstrike_region: us-1
-          crowdstrike_score: 500000
-          retry_count: 30
+          falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
+          falcon_region: 'us-1'
+          scan_type: image
+          image: "${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}"
+          minimum_severity: medium
+          minimum_exprt: medium
+          report_sort_by: severity/desc
+          vuln_fixable_only: true
+          upload_results: true
+          report_formats: json
+          output_path: './vuln-results/'
         env:
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-          FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-          JSON_REPORT: /tmp/report.json
+      
+      - name: Show scan results
+        run: cat ./vuln-results/*.json
 
       - name: Create scan results directory
         run: mkdir scan-results
         
       - name: Run FCS IaC Scan
         id: fcs
-        uses: crowdstrike/fcs-action@v1.0.6
+        uses: crowdstrike/fcs-action@v2.0.0
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
           path: 'ecs-fargate-java-goof.yaml'
           project_owners: ${{ secrets.USER_EMAIL }}
-          severities: 'high,medium, low'
           fail_on: 'high=10'
           upload_results: true
           report_formats: 'sarif'
           output_path: 'scan-results/'
-          version: '0.39.0'
         env: 
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
   
