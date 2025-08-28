@@ -70,13 +70,13 @@ jobs:
           report_sort_by: severity/desc
           vuln_fixable_only: true
           upload_results: true
-          report_formats: json,sarif
-          output_path: './vuln-results/'
+          report_formats: json
+          output_path: './vuln-results/report.json'
         env:
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
       
       - name: Show scan results
-        run: cat ./vuln-results/*.json
+        run: cat ./vuln-results/report.json
 
       - name: Create scan results directory
         run: mkdir scan-results
