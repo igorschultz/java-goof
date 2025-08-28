@@ -70,7 +70,7 @@ jobs:
           report_sort_by: severity/desc
           vuln_fixable_only: true
           upload_results: true
-          report_formats: json
+          report_formats: json,sarif
           output_path: './vuln-results/'
         env:
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
