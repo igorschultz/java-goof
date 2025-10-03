@@ -8,14 +8,13 @@ on:
     branches:
       - 'main'    
 
-permissions:
-  id-token: write
-  contents: write
-  security-events: write
-
 jobs:
   build-todolist-image:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     
     env:
       GITHUB_SHA: ${{ github.sha }}
@@ -57,8 +56,8 @@ jobs:
       - name: Create scan results directory
         run: mkdir vuln-results
       
-      - name: Scan Container Image with CrowdStrike
-        uses: crowdstrike/fcs-action@v2.0.0
+      - name: Scan Container Image with CrowdStrike for Vulnerabilities Only
+        uses: crowdstrike/fcs-action@v2.0.2
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
@@ -69,41 +68,39 @@ jobs:
           report_sort_by: severity/desc
           vuln_fixable_only: true
           upload_results: true
-          report_formats: json
-          output_path: './vuln-results/report.json'
+          report_formats: json,sarif
+          output_path: './vuln-results/results.json'
         env:
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-      
-      - name: Show scan results
-        run: cat ./vuln-results/report.json
 
-      - name: Create scan results directory
-        run: mkdir scan-results
-        
+      - name: Upload SARIF report
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: './vuln-results'
+          category: 'container-scan'
+          wait-for-processing: true
+      
       - name: Run FCS IaC Scan
         id: fcs
-        uses: crowdstrike/fcs-action@v2.0.0
+        uses: crowdstrike/fcs-action@v2.0.2
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
           path: 'ecs-fargate-java-goof.yaml'
-          project_owners: ${{ secrets.USER_EMAIL }}
           fail_on: 'high=10'
-          upload_results: true
-          report_formats: 'json'
+          report_formats: 'sarif'
           output_path: './scan-results'
+          version: 2.1.0
+          upload_results: true
         env: 
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
   
-      - name: Show IaC scan results
-        run: cat ./scan-results/*.json
-  
-      #- name: Upload SARIF report to GitHub Code scanning
-      #  uses: github/codeql-action/upload-sarif@v3
-      #  if: steps.fcs.outputs.exit-code != 0
-      #  with:
-      #    sarif_file: ./scan-results
-      #    category: crowdstrike-fcs-iac-scanner
+      - name: Upload SARIF report to GitHub Code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ./scan-results
 
       - name: Patch Container Image with Falcon Sensor
         uses: crowdstrike/falconutil-action@v1.1.0
