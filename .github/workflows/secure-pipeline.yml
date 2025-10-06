@@ -119,6 +119,10 @@ jobs:
         env:
           FALCON_CLIENT_SECRET: '${{ secrets.FALCON_CLIENT_SECRET }}'
 
+      - name: Push image to ECR
+        run: |
+          docker push ${{ secrets.CONTAINER_REPO }}:patched
+
       - name: Render Amazon ECS task definition
         id: render-java-goof-container
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -139,10 +143,6 @@ jobs:
           name: igors-ecs-fargate-service
           template: ecs-fargate-java-goof.yaml
           parameter-overrides: "TaskDefinitionArn=${{ steps.register-java-goof-task-def.outputs.task-definition-arn }},MyIpAddress=${{ secrets.MY_IP}},ExistingECSCluster=${{ secrets.ECS_CLUSTER}}"
-    
-      - name: Tag & Push docker image
-        run: |
-          docker push ${{ secrets.CONTAINER_REPO }}:patched
 
 
 
