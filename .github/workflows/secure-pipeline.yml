@@ -42,8 +42,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE }}   
-          aws-region: ${{ secrets.AWS_REGION }}   
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}  
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -80,7 +81,10 @@ jobs:
           sarif_file: './vuln-results'
           category: 'container-scan'
           wait-for-processing: true
-      
+       
+      - name: Create scan results directory
+        run: mkdir -p ./scan-results  
+
       - name: Run FCS IaC Scan
         id: fcs
         uses: crowdstrike/fcs-action@v2.0.2
