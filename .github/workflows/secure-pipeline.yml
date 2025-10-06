@@ -1,4 +1,4 @@
-name: java-goof image build and deployment for GKE
+name: java-goof image build and deployment for ECS Fargate
 
 on:
   push:
