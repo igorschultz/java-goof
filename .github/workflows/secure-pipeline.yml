@@ -58,7 +58,7 @@ jobs:
         run: mkdir vuln-results
       
       - name: Scan Container Image with CrowdStrike for Vulnerabilities Only
-        uses: crowdstrike/fcs-action@v2.0.2
+        uses: crowdstrike/fcs-action@v3.0.0
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
@@ -87,7 +87,7 @@ jobs:
 
       - name: Run FCS IaC Scan
         id: fcs
-        uses: crowdstrike/fcs-action@v2.0.2
+        uses: crowdstrike/fcs-action@v3.0.0
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
