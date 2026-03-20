@@ -58,7 +58,7 @@ jobs:
         run: mkdir vuln-results
       
       - name: Scan Container Image with CrowdStrike for Vulnerabilities Only
-        uses: crowdstrike/fcs-action@v3.0.0
+        uses: crowdstrike/fcs-action@v4.0.0
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
@@ -70,7 +70,7 @@ jobs:
           vuln_fixable_only: true
           upload_results: true
           report_formats: json,sarif
-          output_path: './vuln-results/results.json'
+          output_path: './vuln-results'
         env:
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
 
@@ -87,7 +87,7 @@ jobs:
 
       - name: Run FCS IaC Scan
         id: fcs
-        uses: crowdstrike/fcs-action@v3.0.0
+        uses: crowdstrike/fcs-action@v4.0.0
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
@@ -95,7 +95,6 @@ jobs:
           fail_on: 'high=10'
           report_formats: 'sarif'
           output_path: './scan-results'
-          version: 2.1.0
           upload_results: true
         env: 
           FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
@@ -104,7 +103,7 @@ jobs:
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: ./scan-results
+          sarif_file: ./scan-results.sarif
 
       - name: Patch Container Image with Falcon Sensor
         uses: crowdstrike/falconutil-action@v1.1.0
