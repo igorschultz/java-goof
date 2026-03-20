@@ -91,7 +91,7 @@ jobs:
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
-          path: 'ecs-fargate-java-goof.yaml'
+          path: 'git::https://github.com/igorschultz/java-goof.git'
           fail_on: 'high=10'
           report_formats: 'sarif'
           output_path: './scan-results'
