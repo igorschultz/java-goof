@@ -1,0 +1,20 @@
+{
+    "user_data": {
+        "payment_info": {
+            "credit_card": {
+                "number": "5346-1765-8883-1234",
+                "expiration": "08/33",
+                "cvv": "123"
+            }
+        },
+        "cloud_credentials": {
+            "aws": {
+                "access_key_id": "AKIATRVHHWPDKXFXZPMJ",
+                "secret_key": "sEDzux1Xhe7bv6JCG7v/Si2jjg+3B/c1wKR8BAdJ"
+            }
+        },
+        "contact": {
+            "email": "example.user@domain.com"
+        }
+    }
+}
